@@ -1,0 +1,112 @@
+[project]
+name = "nwws-oi-receiver"
+version = "1.0.0-dev"
+description = "Python implementation of the NWWS-OI XMPP protocol for receiving weather data"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = ["slixmpp>=1.10.0"]
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Jonathan Bradshaw", email = "jb@nrgup.net" }]
+keywords = ["emwin", "nwws", "weather", "noaa"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Communications",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+    "Typing :: Typed",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/bradsjm/nwws-oi-receiver"
+"Documentation" = "https://github.com/bradsjm/byte-blaster/tree/main/docs"
+"Repository" = "https://github.com/bradsjm/nwws-oi-receiver.git"
+"Bug Tracker" = "https://github.com/bradsjm/nwws-oi-receiver/issues"
+
+[project.optional-dependencies]
+dev = ["ruff>=0.11.12"]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+byteblaster = ["py.typed"]
+
+[tool.pytest.ini_options]
+addopts = ["--strict-markers", "--strict-config"]
+filterwarnings = ["error", "ignore::UserWarning", "ignore::DeprecationWarning"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "asyncio: marks tests as asyncio tests",
+]
+minversion = "8.0"
+python_classes = ["Test*"]
+python_files = ["test_*.py", "*_test.py"]
+python_functions = ["test_*"]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = [
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "typings",
+]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "ANN",     # Let Pyright handle annotation checks
+    "D203",    # Conflicts with D211 (no blank line before class docstring)
+    "D213",    # Conflicts with D212 (multi-line summary on first line)
+    "PLR2004", # Magic number literals
+    "COM812",  # Missing trailing comma in multi-line collections
+]
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 120
+
+[tool.ruff.format]
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.29.2",
+    "build>=1.2.2.post1",
+    "ruff>=0.11.13",
+    "setuptools>=80.9.0",
+    "wheel>=0.45.1",
+]
+test = [
+    "pytest>=8.4.0",
+    "pytest-asyncio>=1.0.0",
+    "pytest-mock>=3.14.0",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/**" = ["ALL"]
+"examples/**" = ["T201"] # Allow print statements in examples
+"tests/**" = [
+    "T201",   # Allow print statements in tests
+    "D100",   # Allow missing docstrings in test files
+    "D102",   # Allow missing docstrings in test classes
+    "D103",   # Allow missing docstrings in test methods
+    "S101",   # Use of 'assert' in production code
+    "SLF001", # Private member access
+]
