@@ -1,0 +1,86 @@
+name: ❓ Question
+description: Ask a question about usage or get help
+title: "[QUESTION] "
+labels: ["question", "needs-triage"]
+assignees: ["jonathan"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for your question! Please provide as much context as possible to help us give you the best answer.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: What would you like to know?
+      placeholder: How do I...?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What are you trying to accomplish?
+      placeholder: I'm trying to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: attempted
+    attributes:
+      label: What You've Tried
+      description: What have you already tried?
+      placeholder: I tried...
+
+  - type: textarea
+    id: code
+    attributes:
+      label: Code Sample
+      description: If applicable, show your current code
+      render: python
+      placeholder: |
+        import nwws_receiver
+        # Your code here...
+
+  - type: input
+    id: version
+    attributes:
+      label: Library Version
+      description: What version of nwws-oi-receiver are you using?
+      placeholder: "e.g., 1.0.0"
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      description: What version of Python are you using?
+      placeholder: "e.g., 3.12.0"
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Question Category
+      description: What category does your question fall into?
+      options:
+        - Getting Started
+        - Configuration
+        - Message Processing
+        - Error Handling
+        - Performance
+        - Integration
+        - Type Hints
+        - Examples
+        - Best Practices
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Information
+      description: Any other information that might be helpful
+      placeholder: Any additional context...

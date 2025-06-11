@@ -1,0 +1,41 @@
+# CODEOWNERS file for nwws-oi-receiver
+# This file defines who owns which parts of the codebase
+# GitHub will automatically request reviews from code owners when PRs affect their files
+
+# Global ownership
+* @bradsjm
+
+# Core library code
+/src/nwws_receiver/ @bradsjm
+
+# Configuration and build files
+/pyproject.toml @bradsjm
+/pyrightconfig.json @bradsjm
+/uv.lock @bradsjm
+
+# Documentation
+/docs/ @bradsjm
+/README.md @bradsjm
+/CHANGELOG.md @bradsjm
+
+# CI/CD and GitHub configuration
+/.github/ @bradsjm
+
+# Tests
+/tests/ @bradsjm
+
+# Scripts and tooling
+/scripts/ @bradsjm
+
+# Examples
+/examples/ @bradsjm
+
+# Security-related files
+/MANIFEST.in @bradsjm
+/.github/workflows/ci.yml @bradsjm
+/.github/workflows/release.yml @bradsjm
+/.github/workflows/dependency-update.yml @bradsjm
+
+# Type checking configuration
+/pyrightconfig.json @bradsjm
+/src/nwws_receiver/py.typed @bradsjm

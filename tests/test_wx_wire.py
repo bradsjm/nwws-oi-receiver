@@ -130,9 +130,8 @@ class TestWxWireAsyncIterator:
         """Test that __anext__ continues on timeout until stop condition."""
         wx_wire._stop_iteration = True
 
-        with patch("asyncio.wait_for", side_effect=TimeoutError):
-            with pytest.raises(StopAsyncIteration):
-                await wx_wire.__anext__()
+        with patch("asyncio.wait_for", side_effect=TimeoutError), pytest.raises(StopAsyncIteration):
+            await wx_wire.__anext__()
 
     async def test_async_iteration_with_for_loop(self, wx_wire: WxWire) -> None:
         """Test async iteration in a for loop context."""

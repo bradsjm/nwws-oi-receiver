@@ -99,7 +99,7 @@ from nwws_receiver import WxWire, WxWireConfig, NoaaPortMessage
 def handle_message(message: NoaaPortMessage) -> None:
     """Handle incoming weather messages."""
     print(f"Received: {message.awipsid} - {message.subject}")
-    
+
     # Process message based on type
     if message.awipsid.startswith("TOR"):
         print(f"🌪️ TORNADO WARNING: {message.subject}")
@@ -114,24 +114,24 @@ async def main():
         server="nwws-oi.weather.gov",
         port=5222
     )
-    
+
     # Create and configure client
     client = WxWire(config)
     client.subscribe(handle_message)
-    
+
     try:
         # Connect and start receiving messages
         success = await client.start()
         if not success:
             print("Failed to connect to NWWS-OI")
             return
-            
+
         print("Connected! Receiving weather data...")
         print("Press Ctrl+C to stop")
-        
+
         # Keep running until interrupted
         await asyncio.Event().wait()
-        
+
     except KeyboardInterrupt:
         print("\\nShutting down...")
     finally:
@@ -153,20 +153,20 @@ async def main():
         username=os.getenv("NWWS_USERNAME", "your_username"),
         password=os.getenv("NWWS_PASSWORD", "your_password")
     )
-    
+
     client = WxWire(config)
-    
+
     try:
         await client.start()
-        
+
         # Process messages using async iterator
         async for message in client:
             print(f"Processing: {message.awipsid} - {message.subject}")
-            
+
             # Custom processing logic here
             if "URGENT" in message.subject.upper():
                 print(f"🚨 URGENT: {message.content}")
-                
+
     except KeyboardInterrupt:
         print("\\nStopping...")
     finally:
@@ -202,15 +202,15 @@ async def main():
         username="your_username",
         password="your_password"
     )
-    
+
     client = WxWire(config)
-    
+
     # Set up priority subscriber
     client.subscribe(priority_handler)
-    
+
     # Start background processor task
     processor_task = asyncio.create_task(background_processor(client))
-    
+
     try:
         await client.start()
         await asyncio.Event().wait()  # Run forever
@@ -287,15 +287,15 @@ async def robust_client():
         max_reconnect_attempts=5,
         reconnect_delay=10.0
     )
-    
+
     client = WxWire(config)
-    
+
     try:
         success = await client.start()
         if not success:
             logger.error("Failed to connect after all attempts")
             return
-            
+
         # Client will automatically reconnect on network issues
         async for message in client:
             try:
@@ -303,7 +303,7 @@ async def robust_client():
                 process_weather_data(message)
             except Exception as e:
                 logger.error(f"Error processing message: {e}")
-                
+
     except Exception as e:
         logger.error(f"Client error: {e}")
     finally:
@@ -326,7 +326,7 @@ The main client class for connecting to NWWS-OI.
 #### Methods
 
 - `subscribe(handler)` - Subscribe to message events
-- `unsubscribe(handler)` - Remove message subscription  
+- `unsubscribe(handler)` - Remove message subscription
 - `start()` - Connect and start receiving messages (async)
 - `stop(reason=None)` - Disconnect and cleanup (async)
 - `__aiter__()` - Async iterator interface
@@ -344,7 +344,7 @@ Configuration management with validation.
 #### Parameters
 
 - `username` (str) - NWWS-OI username
-- `password` (str) - NWWS-OI password  
+- `password` (str) - NWWS-OI password
 - `server` (str) - XMPP server hostname
 - `port` (int) - XMPP server port
 - `room` (str) - MUC room to join
@@ -388,7 +388,7 @@ NWWS-OI messages are delivered as XMPP messages containing structured weather da
 
 The client implements exponential backoff reconnection:
 - Initial delay: 5 seconds (configurable)
-- Maximum attempts: 10 (configurable)  
+- Maximum attempts: 10 (configurable)
 - Backoff multiplier: 2.0
 - Maximum delay: 300 seconds
 
@@ -461,6 +461,29 @@ For questions, issues, or contributions:
 - Create an [issue on GitHub](https://github.com/bradsjm/nwws-oi-receiver/issues)
 - Check the [examples](examples/) for usage patterns
 - Review the comprehensive logging output for debugging
+
+## Acknowledgments
+
+### AI Assistance
+
+This project has been developed with assistance from Large Language Models (LLMs), and we acknowledge their significant contributions to both the codebase and documentation:
+
+- **Anthropic Claude** - Contributed to code architecture, implementation patterns, documentation structure, async/await patterns, error handling strategies, and comprehensive testing approaches
+- **OpenAI GPT** - Assisted with protocol implementation details, API design decisions, code optimization suggestions, and example development
+- **Google Gemini** - Provided insights on Python best practices, type annotation improvements, and packaging standards compliance
+
+The LLMs have been instrumental in:
+- **Code Quality**: Implementing modern Python 3.12+ features, type hints, and async patterns
+- **Documentation**: Creating comprehensive README, API documentation, and example code
+- **Architecture**: Designing modular, testable, and maintainable code structure
+- **Standards Compliance**: Ensuring adherence to PEP standards and modern packaging practices
+- **Error Handling**: Implementing robust error recovery and logging strategies
+
+While AI has significantly accelerated development and improved code quality, all code has been reviewed, tested, and validated by human developers. The final implementation decisions, architecture choices, and quality standards remain under human oversight.
+
+### Human Contributors
+
+We also acknowledge the human developers, domain experts, and community members who have contributed to the project through code review, testing, feedback, and domain expertise in weather data protocols.
 
 ---
 

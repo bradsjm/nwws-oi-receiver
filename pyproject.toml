@@ -93,14 +93,9 @@ dev = [
     "ruff>=0.11.13",
     "safety>=3.2.11",
     "setuptools>=80.9.0",
-    "twine>=6.1.0",
     "wheel>=0.45.1",
 ]
-test = [
-    "pytest>=8.4.0",
-    "pytest-asyncio>=1.0.0",
-    "pytest-mock>=3.14.0",
-]
+test = ["pytest>=8.4.0", "pytest-asyncio>=1.0.0", "pytest-mock>=3.14.0"]
 
 [tool.ruff.lint.per-file-ignores]
 "scripts/**" = ["ALL"]
@@ -111,5 +106,12 @@ test = [
     "D102",   # Allow missing docstrings in test classes
     "D103",   # Allow missing docstrings in test methods
     "S101",   # Use of 'assert' in production code
+    "S106",   # Hardcoded passwords (test fixtures)
+    "S110",   # Try-except-pass for test isolation
     "SLF001", # Private member access
+    "ARG001", # Unused function arguments in mocks
+    "ARG005", # Unused lambda arguments in mocks
+    "BLE001", # Blind exception catching in test isolation
+    "SIM105", # Use contextlib.suppress - not needed in tests
+    "PERF401", # List comprehension performance - readability over perf in tests
 ]

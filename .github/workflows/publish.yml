@@ -1,9 +1,6 @@
-name: Publish to PyPI
+name: Publish to TestPyPI
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
     inputs:
       pypi_environment:
@@ -13,7 +10,10 @@ on:
         type: choice
         options:
           - 'testpypi'
-          - 'pypi'
+
+permissions:
+    id-token: write
+    contents: read
 
 jobs:
   build:
@@ -30,11 +30,11 @@ jobs:
         python-version: "3.12"
 
     - name: Install UV
-      uses: astral-sh/setup-uv@v4
+      uses: astral-sh/setup-uv@v3
 
     - name: Install build dependencies
       run: |
-        uv sync --group dev
+        uv sync --dev
 
     - name: Build package
       run: |
@@ -42,7 +42,8 @@ jobs:
 
     - name: Check package metadata
       run: |
-        uv run python -m twine check dist/*
+        uv add --dev twine
+        uv run twine check dist/*
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -54,15 +55,9 @@ jobs:
     name: Publish to TestPyPI
     runs-on: ubuntu-latest
     needs: build
-    if: |
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.pypi_environment == 'testpypi') ||
-      (github.event_name == 'push' && contains(github.ref, 'refs/tags/') && contains(github.ref, 'rc'))
     environment:
       name: testpypi
       url: https://test.pypi.org/p/nwws-oi-receiver
-
-    permissions:
-      id-token: write
 
     steps:
     - name: Download build artifacts
@@ -76,60 +71,3 @@ jobs:
       with:
         repository-url: https://test.pypi.org/legacy/
         verbose: true
-
-  publish-pypi:
-    name: Publish to PyPI
-    runs-on: ubuntu-latest
-    needs: build
-    if: |
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.pypi_environment == 'pypi') ||
-      (github.event_name == 'push' && contains(github.ref, 'refs/tags/') && !contains(github.ref, 'rc'))
-    environment:
-      name: pypi
-      url: https://pypi.org/p/nwws-oi-receiver
-
-    permissions:
-      id-token: write
-
-    steps:
-    - name: Download build artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: dist
-        path: dist/
-
-    - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        verbose: true
-
-  create-github-release:
-    name: Create GitHub Release
-    runs-on: ubuntu-latest
-    needs: [build, publish-pypi]
-    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
-
-    permissions:
-      contents: write
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Download build artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: dist
-        path: dist/
-
-    - name: Extract version from tag
-      id: version
-      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@v2
-      with:
-        files: dist/*
-        generate_release_notes: true
-        prerelease: ${{ contains(github.ref, 'rc') || contains(github.ref, 'alpha') || contains(github.ref, 'beta') }}
-        draft: false
