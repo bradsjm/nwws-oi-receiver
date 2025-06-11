@@ -1,6 +1,6 @@
 [project]
 name = "nwws-oi-receiver"
-version = "1.0.0-dev"
+version = "1.0.0"
 description = "Python implementation of the NWWS-OI XMPP protocol for receiving weather data"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -23,7 +23,7 @@ classifiers = [
 
 [project.urls]
 "Homepage" = "https://github.com/bradsjm/nwws-oi-receiver"
-"Documentation" = "https://github.com/bradsjm/byte-blaster/tree/main/docs"
+"Documentation" = "https://github.com/bradsjm/nwws-oi-receiver/tree/main/docs"
 "Repository" = "https://github.com/bradsjm/nwws-oi-receiver.git"
 "Bug Tracker" = "https://github.com/bradsjm/nwws-oi-receiver/issues"
 
@@ -38,7 +38,7 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [tool.setuptools.package-data]
-byteblaster = ["py.typed"]
+nwws_receiver = ["py.typed"]
 
 [tool.pytest.ini_options]
 addopts = ["--strict-markers", "--strict-config"]
@@ -87,10 +87,13 @@ max-line-length = 120
 
 [dependency-groups]
 dev = [
+    "bandit[toml]>=1.7.10",
     "basedpyright>=1.29.2",
     "build>=1.2.2.post1",
     "ruff>=0.11.13",
+    "safety>=3.2.11",
     "setuptools>=80.9.0",
+    "twine>=6.1.0",
     "wheel>=0.45.1",
 ]
 test = [

@@ -14,3 +14,6 @@ wheels/
 
 # MacOS specific files
 .DS_Store
+
+# Other system files
+CLAUDE.md

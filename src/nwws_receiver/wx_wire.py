@@ -4,8 +4,9 @@
 import asyncio
 import logging
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from datetime import UTC, datetime
+from typing import Any
 from xml.etree import ElementTree as ET
 
 import slixmpp
@@ -23,6 +24,9 @@ MUC_ROOM = "nwws@conference.nwws-oi.weather.gov"
 IDLE_TIMEOUT = 90  # 90 seconds of inactivity before reconnecting
 MAX_HISTORY = 25  # Maximum history messages to retrieve when joining MUC
 
+# Type aliases
+MessageHandler = Callable[[NoaaPortMessage], Any]
+
 
 class WxWire(slixmpp.ClientXMPP):
     """Production-grade NWWS-OI XMPP client for receiving real-time weather data.
@@ -38,14 +42,16 @@ class WxWire(slixmpp.ClientXMPP):
     - Idle timeout detection and forced reconnection for stuck connections
     - Comprehensive error handling and recovery mechanisms
     - Async iterator pattern for processing incoming weather messages
+    - Subscribe/unsubscribe pattern for flexible message handling
     - Detailed metrics collection and monitoring capabilities
     - Circuit breaker patterns for resilient message processing
     - Structured logging for operational visibility
 
     The client joins the NWWS MUC room and processes incoming weather messages,
     converting them from NWWS-OI XML format to structured WeatherWireMessage objects
-    with standardized NOAAPort formatting. Messages are queued internally and made
-    available through the async iterator interface for downstream processing.
+    with standardized NOAAPort formatting. Messages are available through both:
+    1. Async iterator interface for streaming consumption
+    2. Subscribe/unsubscribe callbacks for event-driven processing
 
     Connection health is continuously monitored through idle timeout detection,
     periodic stats updates, and comprehensive event handling for all XMPP lifecycle
@@ -106,6 +112,9 @@ class WxWire(slixmpp.ClientXMPP):
         # Message queue for async iterator pattern
         self._message_queue: asyncio.Queue[NoaaPortMessage] = asyncio.Queue(maxsize=50)
         self._stop_iteration = False
+
+        # Subscriber management for callback pattern
+        self._subscribers: set[MessageHandler] = set()
 
         # Register plugins
         self.register_plugin("xep_0030")  # Service Discovery  # type: ignore[misc]
@@ -191,6 +200,164 @@ class WxWire(slixmpp.ClientXMPP):
 
         """
         return self._message_queue.qsize()
+
+    def subscribe(self, handler: MessageHandler) -> None:
+        """Subscribe a callback function to receive weather messages.
+
+        Registers a callback function that will be invoked for each incoming weather
+        message. This provides an event-driven alternative to the async iterator pattern,
+        allowing for more flexible integration with different architectural patterns.
+
+        The handler function will be called with each NoaaPortMessage as it arrives.
+        Multiple handlers can be registered and will all be called for each message.
+        Handlers should be lightweight and fast to avoid blocking message processing.
+
+        Args:
+            handler: A callable that accepts a NoaaPortMessage parameter. The handler
+                    should not raise exceptions as this will be logged but not propagated.
+                    For async handlers, consider using asyncio.create_task() within
+                    the handler to avoid blocking.
+
+        Example:
+            ```python
+            def my_handler(message: NoaaPortMessage) -> None:
+                print(f"Received: {message.awipsid}")
+
+            client = WxWire(config)
+            client.subscribe(my_handler)
+            await client.start()
+            ```
+
+        Note:
+            Subscribers are called synchronously within the message processing loop.
+            For CPU-intensive or I/O operations, consider using asyncio.create_task()
+            or threading within your handler to avoid blocking message processing.
+
+        """
+        if handler in self._subscribers:
+            logger.warning("Handler already subscribed, ignoring duplicate subscription")
+            return
+
+        self._subscribers.add(handler)
+        logger.info("Added message subscriber - total_subscribers: %d", len(self._subscribers))
+
+    def unsubscribe(self, handler: MessageHandler) -> None:
+        """Remove a previously registered message handler.
+
+        Removes a callback function from the set of registered message handlers.
+        After unsubscription, the handler will no longer receive weather messages.
+
+        Args:
+            handler: The same callable that was previously registered with subscribe().
+                    The handler object must be identical (same object reference) to
+                    the one used in the subscribe() call.
+
+        Example:
+            ```python
+            def my_handler(message: NoaaPortMessage) -> None:
+                print(f"Received: {message.awipsid}")
+
+            client = WxWire(config)
+            client.subscribe(my_handler)
+            # ... later ...
+            client.unsubscribe(my_handler)
+            ```
+
+        Note:
+            If the handler was not previously subscribed, this method will log a
+            warning but will not raise an exception.
+
+        """
+        if handler not in self._subscribers:
+            logger.warning("Handler not found in subscribers, ignoring unsubscribe request")
+            return
+
+        self._subscribers.discard(handler)
+        logger.info("Removed message subscriber - total_subscribers: %d", len(self._subscribers))
+
+    @property
+    def subscriber_count(self) -> int:
+        """Get the current number of registered message subscribers.
+
+        Returns:
+            The number of callback functions currently registered to receive
+            weather messages through the subscribe/unsubscribe pattern.
+
+        """
+        return len(self._subscribers)
+
+    async def _dispatch_message(self, message: NoaaPortMessage) -> None:
+        """Dispatch a message to both the async iterator queue and subscribers.
+
+        This method handles the distribution of incoming weather messages to both
+        consumption patterns supported by the client:
+        1. Async iterator pattern via internal queue
+        2. Subscribe/unsubscribe pattern via registered callbacks
+
+        The method ensures that messages are delivered to all registered handlers
+        while maintaining proper error isolation. If a subscriber raises an exception,
+        it is logged but does not affect other subscribers or the async iterator queue.
+
+        Args:
+            message: The processed weather message to distribute to consumers.
+
+        """
+        # Put message in queue for async iterator pattern
+        try:
+            self._message_queue.put_nowait(message)
+        except asyncio.QueueFull:
+            logger.warning(
+                "Message queue full (size: %d), dropping message: %s",
+                self._message_queue.maxsize,
+                message.awipsid,
+            )
+
+        # Notify all subscribers
+        if self._subscribers:
+            await self._notify_subscribers(message)
+
+    async def _notify_subscribers(self, message: NoaaPortMessage) -> None:
+        """Notify all registered subscribers of a new message.
+
+        Calls each registered subscriber callback with the provided message.
+        Subscriber calls are executed synchronously but with proper exception
+        handling to ensure that a failing subscriber does not affect others.
+
+        Args:
+            message: The weather message to deliver to subscribers.
+
+        """
+        failed_subscribers: list[MessageHandler] = []
+
+        for subscriber in self._subscribers:
+            try:
+                # Call subscriber synchronously to avoid concurrency issues
+                subscriber(message)
+            except (TypeError, ValueError, RuntimeError, AttributeError) as e:
+                logger.warning(
+                    "Subscriber failed to process message - error: %s, error_type: %s",
+                    str(e),
+                    type(e).__name__,
+                )
+                failed_subscribers.append(subscriber)
+            except Exception as e:  # noqa: BLE001
+                # Catch all other exceptions to prevent breaking the message loop
+                logger.warning(
+                    "Subscriber failed with unexpected error - error: %s, error_type: %s",
+                    str(e),
+                    type(e).__name__,
+                )
+                failed_subscribers.append(subscriber)
+
+        # Remove failed subscribers that consistently fail
+        # Note: For production, you might want more sophisticated error handling
+        # such as retry logic or circuit breakers
+        if failed_subscribers:
+            logger.info(
+                "Subscribers failed to process message - failed_count: %d, total_subscribers: %d",
+                len(failed_subscribers),
+                len(self._subscribers),
+            )
 
     def _add_event_handlers(self) -> None:
         """Add all necessary event handlers for the XMPP client."""
@@ -409,15 +576,8 @@ class WxWire(slixmpp.ClientXMPP):
                 # Message was skipped (logged in _on_nwws_message)
                 return
 
-            # Put message in queue instead of calling callback
-            try:
-                self._message_queue.put_nowait(weather_message)
-            except asyncio.QueueFull:
-                logger.warning(
-                    "Message queue full (size: %d), dropping message: %s",
-                    self._message_queue.maxsize,
-                    weather_message.awipsid,
-                )
+            # Dispatch message to both queue and subscribers
+            await self._dispatch_message(weather_message)
 
         except (ET.ParseError, UnicodeDecodeError) as e:
             logger.warning("Message parsing failed - error: %s", str(e))

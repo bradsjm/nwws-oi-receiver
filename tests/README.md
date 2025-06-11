@@ -65,44 +65,6 @@ The main test file covering core functionality:
   - Shutdown during operation
   - Queue backpressure handling
 
-#### `test_wx_wire_edge_cases.py` (25 tests)
-Edge cases and error conditions:
-
-- **TestWxWireEdgeCases** (7 tests): Boundary conditions
-  - Empty queue handling
-  - Thread safety verification
-  - Multiple operation calls
-  - Connection state edge cases
-
-- **TestWxWireErrorConditions** (15 tests): Error handling
-  - Connection failures
-  - Authentication errors
-  - XML parsing errors
-  - Plugin failures
-  - Malformed data handling
-
-- **TestWxWireRaceConditions** (4 tests): Concurrency issues
-  - Concurrent start/stop operations
-  - Message processing races
-  - Background service coordination
-
-#### `test_wx_wire_performance.py` (13 tests)
-Performance and stress testing:
-
-- **TestWxWirePerformance** (6 tests): Performance benchmarks
-  - High-volume message processing (1000+ messages)
-  - Concurrent message handling
-  - Queue backpressure performance
-  - Message conversion speed
-  - Timestamp parsing performance
-  - Background service overhead
-
-- **TestWxWireStressTests** (4 tests): Stress conditions
-  - Rapid connect/disconnect cycles
-  - Memory usage under load
-  - Error recovery capabilities
-  - High-load shutdown behavior
-
 ### Support Files
 
 #### `conftest.py`
@@ -120,7 +82,7 @@ The test suite provides comprehensive coverage of:
 
 ### Core Business Logic
 - ✅ Message processing and parsing
-- ✅ Async iterator functionality  
+- ✅ Async iterator functionality
 - ✅ Connection state management
 - ✅ Background service lifecycle
 - ✅ Utility functions

@@ -333,10 +333,15 @@ class TestWxWireEventHandlers:
 
     async def test_on_session_start_handles_xmpp_error(self, wx_wire: WxWire) -> None:
         """Test _on_session_start handles XMPP errors gracefully."""
+        from slixmpp.exceptions import XMPPError
+
         with (
             patch.object(wx_wire, "_start_background_services"),
             patch.object(
-                wx_wire, "get_roster", new_callable=AsyncMock, side_effect=Exception("Test error")
+                wx_wire,
+                "get_roster",
+                new_callable=AsyncMock,
+                side_effect=XMPPError("service-unavailable", "Test error"),
             ),
             patch("nwws_receiver.wx_wire.logger") as mock_logger,
         ):
@@ -493,8 +498,10 @@ class TestWxWireMucOperations:
 
     async def test_join_nwws_room_handles_xmpp_error(self, wx_wire: WxWire) -> None:
         """Test MUC room join handles XMPP errors."""
+        from slixmpp.exceptions import XMPPError
+
         mock_muc = wx_wire.plugin["xep_0045"]
-        mock_muc.join_muc = AsyncMock(side_effect=Exception("Join failed"))
+        mock_muc.join_muc = AsyncMock(side_effect=XMPPError("service-unavailable", "Join failed"))
 
         with patch("nwws_receiver.wx_wire.logger") as mock_logger:
             await wx_wire._join_nwws_room()
@@ -512,8 +519,14 @@ class TestWxWireMucOperations:
 
     async def test_send_subscription_presence_handles_xmpp_error(self, wx_wire: WxWire) -> None:
         """Test subscription presence handles XMPP errors."""
+        from slixmpp.exceptions import XMPPError
+
         with (
-            patch.object(wx_wire, "send_presence", side_effect=Exception("Send failed")),
+            patch.object(
+                wx_wire,
+                "send_presence",
+                side_effect=XMPPError("service-unavailable", "Send failed"),
+            ),
             patch("nwws_receiver.wx_wire.logger") as mock_logger,
         ):
             await wx_wire._send_subscription_presence()
@@ -761,6 +774,8 @@ class TestWxWireMessageProcessing:
         mock_x_element.text = ""  # Empty body
         mock_msg.xml.find.return_value = mock_x_element
         mock_msg.get_id.return_value = "test_id"
+        mock_msg.get.return_value = ""
+        mock_msg.__contains__ = Mock(return_value=False)  # "delay" not in msg
 
         with patch("nwws_receiver.wx_wire.logger") as mock_logger:
             result = await wx_wire._on_nwws_message(mock_msg)
@@ -1015,3 +1030,199 @@ class TestWxWireIntegration:
         # Should have first maxsize messages, rest were dropped
         assert len(consumed_messages) == wx_wire._message_queue.maxsize
         assert consumed_messages == test_messages[: wx_wire._message_queue.maxsize]
+
+
+class TestWxWireSubscriberPattern:
+    """Test subscribe/unsubscribe functionality."""
+
+    @pytest.fixture
+    def wx_wire(self) -> WxWire:
+        """Create WxWire instance for testing."""
+        config = WxWireConfig(username="testuser", password="testpass")
+        return WxWire(config)
+
+    @pytest.fixture
+    def sample_message(self) -> NoaaPortMessage:
+        """Create a sample NoaaPortMessage for testing."""
+        return NoaaPortMessage(
+            subject="Test Weather Alert",
+            noaaport="\x01Test content\r\r\n\x03",
+            id="test_message_id",
+            issue=datetime.now(UTC),
+            ttaaii="NOUS41",
+            cccc="KOKX",
+            awipsid="TESTOKX",
+        )
+
+    def test_subscribe_adds_handler(self, wx_wire: WxWire) -> None:
+        """Test that subscribe adds a handler to the subscribers set."""
+        handler = Mock()
+
+        wx_wire.subscribe(handler)
+
+        assert handler in wx_wire._subscribers
+        assert wx_wire.subscriber_count == 1
+
+    def test_subscribe_duplicate_handler_ignored(self, wx_wire: WxWire) -> None:
+        """Test that subscribing the same handler twice is ignored."""
+        handler = Mock()
+
+        wx_wire.subscribe(handler)
+        wx_wire.subscribe(handler)  # Duplicate
+
+        assert wx_wire.subscriber_count == 1
+        assert handler in wx_wire._subscribers
+
+    def test_subscribe_multiple_handlers(self, wx_wire: WxWire) -> None:
+        """Test that multiple handlers can be subscribed."""
+        handler1 = Mock()
+        handler2 = Mock()
+        handler3 = Mock()
+
+        wx_wire.subscribe(handler1)
+        wx_wire.subscribe(handler2)
+        wx_wire.subscribe(handler3)
+
+        assert wx_wire.subscriber_count == 3
+        assert handler1 in wx_wire._subscribers
+        assert handler2 in wx_wire._subscribers
+        assert handler3 in wx_wire._subscribers
+
+    def test_unsubscribe_removes_handler(self, wx_wire: WxWire) -> None:
+        """Test that unsubscribe removes a handler from the subscribers set."""
+        handler = Mock()
+
+        wx_wire.subscribe(handler)
+        assert wx_wire.subscriber_count == 1
+
+        wx_wire.unsubscribe(handler)
+        assert wx_wire.subscriber_count == 0
+        assert handler not in wx_wire._subscribers
+
+    def test_unsubscribe_nonexistent_handler(self, wx_wire: WxWire) -> None:
+        """Test that unsubscribing a non-existent handler is handled gracefully."""
+        handler = Mock()
+
+        # Should not raise an exception
+        wx_wire.unsubscribe(handler)
+        assert wx_wire.subscriber_count == 0
+
+    def test_unsubscribe_partial_removal(self, wx_wire: WxWire) -> None:
+        """Test that unsubscribing one handler leaves others intact."""
+        handler1 = Mock()
+        handler2 = Mock()
+        handler3 = Mock()
+
+        wx_wire.subscribe(handler1)
+        wx_wire.subscribe(handler2)
+        wx_wire.subscribe(handler3)
+        assert wx_wire.subscriber_count == 3
+
+        wx_wire.unsubscribe(handler2)
+        assert wx_wire.subscriber_count == 2
+        assert handler1 in wx_wire._subscribers
+        assert handler2 not in wx_wire._subscribers
+        assert handler3 in wx_wire._subscribers
+
+    async def test_dispatch_message_calls_subscribers(
+        self, wx_wire: WxWire, sample_message: NoaaPortMessage
+    ) -> None:
+        """Test that _dispatch_message calls all registered subscribers."""
+        handler1 = Mock()
+        handler2 = Mock()
+
+        wx_wire.subscribe(handler1)
+        wx_wire.subscribe(handler2)
+
+        await wx_wire._dispatch_message(sample_message)
+
+        handler1.assert_called_once_with(sample_message)
+        handler2.assert_called_once_with(sample_message)
+
+    async def test_dispatch_message_adds_to_queue(
+        self, wx_wire: WxWire, sample_message: NoaaPortMessage
+    ) -> None:
+        """Test that _dispatch_message adds message to async iterator queue."""
+        await wx_wire._dispatch_message(sample_message)
+
+        assert wx_wire.queue_size == 1
+        queued_message = await wx_wire._message_queue.get()
+        assert queued_message == sample_message
+
+    async def test_dispatch_message_handles_queue_full(
+        self, wx_wire: WxWire, sample_message: NoaaPortMessage
+    ) -> None:
+        """Test that _dispatch_message handles queue full condition gracefully."""
+        # Fill the queue to capacity
+        for _ in range(wx_wire._message_queue.maxsize):
+            await wx_wire._message_queue.put(sample_message)
+
+        # This should not raise an exception even though queue is full
+        await wx_wire._dispatch_message(sample_message)
+
+        # Queue should still be at capacity
+        assert wx_wire.queue_size == wx_wire._message_queue.maxsize
+
+    async def test_notify_subscribers_handles_exceptions(
+        self, wx_wire: WxWire, sample_message: NoaaPortMessage
+    ) -> None:
+        """Test that _notify_subscribers handles subscriber exceptions gracefully."""
+        good_handler = Mock()
+        bad_handler = Mock(side_effect=Exception("Test exception"))
+        another_good_handler = Mock()
+
+        wx_wire.subscribe(good_handler)
+        wx_wire.subscribe(bad_handler)
+        wx_wire.subscribe(another_good_handler)
+
+        # Should not raise exception even though bad_handler fails
+        await wx_wire._notify_subscribers(sample_message)
+
+        # Good handlers should still be called
+        good_handler.assert_called_once_with(sample_message)
+        another_good_handler.assert_called_once_with(sample_message)
+        bad_handler.assert_called_once_with(sample_message)
+
+    async def test_notify_subscribers_no_subscribers(
+        self, wx_wire: WxWire, sample_message: NoaaPortMessage
+    ) -> None:
+        """Test that _notify_subscribers handles empty subscriber list."""
+        # Should not raise exception with no subscribers
+        await wx_wire._notify_subscribers(sample_message)
+
+    async def test_integration_both_patterns_work_together(
+        self, wx_wire: WxWire, sample_message: NoaaPortMessage
+    ) -> None:
+        """Test that both async iterator and subscriber patterns work together."""
+        handler = Mock()
+        wx_wire.subscribe(handler)
+
+        # Dispatch a message
+        await wx_wire._dispatch_message(sample_message)
+
+        # Verify subscriber was called
+        handler.assert_called_once_with(sample_message)
+
+        # Verify message is also available via async iterator
+        assert wx_wire.queue_size == 1
+        queued_message = await wx_wire._message_queue.get()
+        assert queued_message == sample_message
+
+    def test_subscriber_count_property(self, wx_wire: WxWire) -> None:
+        """Test that subscriber_count property returns correct count."""
+        assert wx_wire.subscriber_count == 0
+
+        handler1 = Mock()
+        handler2 = Mock()
+
+        wx_wire.subscribe(handler1)
+        assert wx_wire.subscriber_count == 1
+
+        wx_wire.subscribe(handler2)
+        assert wx_wire.subscriber_count == 2
+
+        wx_wire.unsubscribe(handler1)
+        assert wx_wire.subscriber_count == 1
+
+        wx_wire.unsubscribe(handler2)
+        assert wx_wire.subscriber_count == 0
