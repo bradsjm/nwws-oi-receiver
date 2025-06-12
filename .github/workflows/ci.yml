@@ -175,7 +175,18 @@ jobs:
                   uv run python -c "
                   import zipfile
                   import sys
-                  with zipfile.ZipFile('dist/nwws_oi_receiver-*.whl'.replace('*', '$(ls dist/*.whl | cut -d'-' -f2)')) as z:
+                  from pathlib import Path
+                  
+                  # Find the wheel file
+                  wheel_files = list(Path('dist').glob('*.whl'))
+                  if not wheel_files:
+                      print('ERROR: No wheel files found in dist/')
+                      sys.exit(1)
+                  
+                  wheel_path = wheel_files[0]
+                  print(f'Checking wheel: {wheel_path}')
+                  
+                  with zipfile.ZipFile(wheel_path) as z:
                       files = z.namelist()
                       print('Wheel contents:')
                       for f in sorted(files):
@@ -192,9 +203,24 @@ jobs:
                   uv run python -c "
                   from pathlib import Path
                   import zipfile
-                  wheel_path = Path('dist/nwws_oi_receiver-*.whl'.replace('*', '$(ls dist/*.whl | cut -d'-' -f2)'))
+                  
+                  # Find the wheel file
+                  wheel_files = list(Path('dist').glob('*.whl'))
+                  if not wheel_files:
+                      print('ERROR: No wheel files found in dist/')
+                      exit(1)
+                  
+                  wheel_path = wheel_files[0]
+                  print(f'Checking metadata in wheel: {wheel_path}')
+                  
                   with zipfile.ZipFile(wheel_path) as z:
-                      metadata = z.read('nwws_oi_receiver-*.dist-info/METADATA'.replace('*', '$(ls dist/*.whl | cut -d'-' -f2)')).decode()
+                      # Find the METADATA file
+                      metadata_files = [f for f in z.namelist() if f.endswith('.dist-info/METADATA')]
+                      if not metadata_files:
+                          print('ERROR: No METADATA file found in wheel!')
+                          exit(1)
+                      
+                      metadata = z.read(metadata_files[0]).decode()
                       if 'Classifier: Typing :: Typed' not in metadata:
                           print('ERROR: Typing :: Typed classifier not found!')
                           exit(1)
