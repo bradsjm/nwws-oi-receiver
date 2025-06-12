@@ -49,7 +49,7 @@ markers = [
     "unit: marks tests as unit tests",
     "asyncio: marks tests as asyncio tests",
 ]
-minversion = "1.0.0"
+minversion = "8.0"
 python_classes = ["Test*"]
 python_files = ["test_*.py", "*_test.py"]
 python_functions = ["test_*"]
@@ -57,7 +57,7 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 
 [tool.ruff]
-target-version = "1.0.0"
+target-version = "py312"
 line-length = 100
 extend-exclude = [
     ".git",
@@ -101,17 +101,17 @@ test = ["pytest>=8.4.0", "pytest-asyncio>=1.0.0", "pytest-mock>=3.14.0"]
 "scripts/**" = ["ALL"]
 "examples/**" = ["T201"] # Allow print statements in examples
 "tests/**" = [
-    "T201",   # Allow print statements in tests
-    "D100",   # Allow missing docstrings in test files
-    "D102",   # Allow missing docstrings in test classes
-    "D103",   # Allow missing docstrings in test methods
-    "S101",   # Use of 'assert' in production code
-    "S106",   # Hardcoded passwords (test fixtures)
-    "S110",   # Try-except-pass for test isolation
-    "SLF001", # Private member access
-    "ARG001", # Unused function arguments in mocks
-    "ARG005", # Unused lambda arguments in mocks
-    "BLE001", # Blind exception catching in test isolation
-    "SIM105", # Use contextlib.suppress - not needed in tests
+    "T201",    # Allow print statements in tests
+    "D100",    # Allow missing docstrings in test files
+    "D102",    # Allow missing docstrings in test classes
+    "D103",    # Allow missing docstrings in test methods
+    "S101",    # Use of 'assert' in production code
+    "S106",    # Hardcoded passwords (test fixtures)
+    "S110",    # Try-except-pass for test isolation
+    "SLF001",  # Private member access
+    "ARG001",  # Unused function arguments in mocks
+    "ARG005",  # Unused lambda arguments in mocks
+    "BLE001",  # Blind exception catching in test isolation
+    "SIM105",  # Use contextlib.suppress - not needed in tests
     "PERF401", # List comprehension performance - readability over perf in tests
 ]
