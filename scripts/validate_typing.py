@@ -295,17 +295,17 @@ from nwws_receiver.message import NoaaPortMessage
 # Test that types are properly recognized
 def test_config() -> None:
     """Test that WxWireConfig is properly typed."""
-    config = WxWireConfig(email="test@example.com")
+    config = WxWireConfig(username="test@example.com")
     # This should be properly typed
-    email: str = config.email
-    print(f"Email: {email}")
+    username: str = config.username
+    print(f"Username: {username}")
 
 def test_message(message: NoaaPortMessage) -> None:
     """Test that NoaaPortMessage is properly typed."""
     # These should all be properly typed
-    text: str = message.text
-    awips_id: str | None = message.awips_id
-    print(f"AWIPS ID: {awips_id}, Text length: {len(text)}")
+    noaaport: str = message.noaaport
+    awipsid: str = message.awipsid
+    print(f"AWIPS ID: {awipsid}, Text length: {len(noaaport)}")
 
 if __name__ == "__main__":
     test_config()

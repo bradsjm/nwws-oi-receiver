@@ -269,17 +269,18 @@ jobs:
               run: |
                   pip install basedpyright
                   cat > test_typing.py << 'EOF'
-                  from nwws_receiver import WxWireConfig, NoaaPortMessage
+                  from nwws_receiver import WxWireConfig
+                  from nwws_receiver.message import NoaaPortMessage
 
                   def test_typing() -> None:
-                      config: WxWireConfig = WxWireConfig(email="test@example.com")
-                      email: str = config.email
-                      print(f"Email: {email}")
+                      config: WxWireConfig = WxWireConfig(username="test@example.com")
+                      username: str = config.username
+                      print(f"Username: {username}")
 
                   def handle_message(message: NoaaPortMessage) -> None:
-                      text: str = message.text
-                      timestamp: str | None = message.timestamp
-                      print(f"Message: {text}, Timestamp: {timestamp}")
+                      noaaport: str = message.noaaport
+                      issue: str = str(message.issue)
+                      print(f"Message: {noaaport}, Issue: {issue}")
                   EOF
 
                   basedpyright test_typing.py
