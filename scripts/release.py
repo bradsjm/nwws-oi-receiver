@@ -198,7 +198,7 @@ def run_pre_release_checks() -> bool:
     checks = [
         (["uv", "run", "ruff", "format", "--check"], "Code formatting"),
         (["uv", "run", "ruff", "check"], "Linting"),
-        (["uv", "run", "basedpyright", "nwws_oi_receiver"], "Type checking"),
+        (["uv", "run", "basedpyright", "src/nwws_receiver"], "Type checking"),
         (["uv", "run", "pytest"], "Tests"),
         (["uv", "run", "python", "scripts/validate_typing.py"], "Typing validation"),
         (["uv", "run", "python", "-m", "build"], "Build"),
