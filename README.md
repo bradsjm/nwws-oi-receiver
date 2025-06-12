@@ -230,16 +230,9 @@ from nwws_receiver import WxWireConfig
 config = WxWireConfig(
     username="your_username",              # NWWS-OI username
     password="your_password",              # NWWS-OI password
-    server="nwws-oi.weather.gov",         # XMPP server (default)
-    port=5222,                            # XMPP port (default)
-    room="nwws-oi@conference.weather.gov", # MUC room (default)
-    nickname="your_nickname",             # MUC nickname (optional)
-    history=0,                           # Message history to request (default: 0)
-    idle_timeout=300,                    # Idle timeout in seconds (default: 300)
-    max_reconnect_attempts=10,           # Max reconnection attempts (default: 10)
-    reconnect_delay=5.0,                 # Initial reconnect delay (default: 5.0)
-    use_tls=True,                       # Use TLS encryption (default: True)
-    validate_certificates=True          # Validate SSL certificates (default: True)
+    server="nwws-oi.weather.gov",          # XMPP server (default)
+    port=5222,                             # XMPP port (default)
+    history=0,                             # Message history to request (default: 0)
 )
 ```
 
@@ -253,10 +246,8 @@ from nwws_receiver import NoaaPortMessage
 def process_message(message: NoaaPortMessage) -> None:
     print(f"AWIPS ID: {message.awipsid}")           # Product identifier
     print(f"Subject: {message.subject}")            # Message subject
-    print(f"Content: {message.content}")            # Message body
-    print(f"Timestamp: {message.timestamp}")        # Message timestamp
-    print(f"Source: {message.source}")              # Originating office
-    print(f"Raw XML: {message.raw_xml}")            # Original XML
+    print(f"Content: {message.noaaport}")           # Message body
+    print(f"Timestamp: {message.issue}")            # Message timestamp
 ```
 
 ## Authentication
@@ -267,48 +258,6 @@ To use NWWS-OI, you need to register for an account:
 2. Complete the registration process
 3. Wait for account approval (typically 1-2 business days)
 4. Use your approved credentials in the configuration
-
-## Error Handling
-
-The client includes comprehensive error handling:
-
-```python
-import logging
-from nwws_receiver import WxWire, WxWireConfig
-
-# Enable detailed logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-async def robust_client():
-    config = WxWireConfig(
-        username="your_username",
-        password="your_password",
-        max_reconnect_attempts=5,
-        reconnect_delay=10.0
-    )
-
-    client = WxWire(config)
-
-    try:
-        success = await client.start()
-        if not success:
-            logger.error("Failed to connect after all attempts")
-            return
-
-        # Client will automatically reconnect on network issues
-        async for message in client:
-            try:
-                # Process message
-                process_weather_data(message)
-            except Exception as e:
-                logger.error(f"Error processing message: {e}")
-
-    except Exception as e:
-        logger.error(f"Client error: {e}")
-    finally:
-        await client.stop()
-```
 
 ## Examples
 
@@ -347,14 +296,7 @@ Configuration management with validation.
 - `password` (str) - NWWS-OI password
 - `server` (str) - XMPP server hostname
 - `port` (int) - XMPP server port
-- `room` (str) - MUC room to join
-- `nickname` (str) - MUC nickname
 - `history` (int) - Message history count
-- `idle_timeout` (float) - Connection idle timeout
-- `max_reconnect_attempts` (int) - Maximum reconnection attempts
-- `reconnect_delay` (float) - Initial reconnect delay
-- `use_tls` (bool) - Enable TLS encryption
-- `validate_certificates` (bool) - Validate SSL certificates
 
 ### NoaaPortMessage Class
 
@@ -362,12 +304,15 @@ Structured weather message representation.
 
 #### Attributes
 
-- `awipsid` (str) - AWIPS product identifier
-- `subject` (str) - Message subject line
-- `content` (str) - Message content/body
-- `timestamp` (datetime) - Message timestamp
-- `source` (str) - Originating weather office
-- `raw_xml` (str) - Original XML message
+subject: Subject of the message.
+noaaport: NOAAPort formatted text of the product message.
+id: Unique identifier for the product (server process ID and sequence number).
+issue: Issue time of the product as a datetime object.
+ttaaii: TTAAII code representing the WMO product type and time.
+cccc: CCCC code representing the issuing office or center.
+awipsid: AWIPS ID (AFOS PIL) of the product if available.
+delay_stamp: Delay stamp if the message was delayed, otherwise None.
+
 
 ## Protocol Details
 

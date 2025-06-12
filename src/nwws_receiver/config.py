@@ -7,26 +7,6 @@ class ConfigurationError(ValueError):
     """Raised when configuration validation fails."""
 
 
-def _validate_email(email: str, field_name: str = "email") -> str:
-    """Validate email field.
-
-    Args:
-        email: Email address to validate
-        field_name: Name of the field for error messages
-
-    Returns:
-        Validated and stripped email address
-
-    Raises:
-        ConfigurationError: If email is empty or invalid
-
-    """
-    if not email or not email.strip():
-        msg = f"{field_name.capitalize()} address must not be empty"
-        raise ConfigurationError(msg)
-    return email.strip()
-
-
 def _validate_port(port: int, field_name: str = "port") -> int:
     """Validate port number.
 
@@ -65,33 +45,6 @@ def _validate_history(history: int, field_name: str = "history") -> int:
         msg = f"{field_name.capitalize()} must be non-negative, got {history}"
         raise ConfigurationError(msg)
     return history
-
-
-@dataclass(frozen=True)
-class EmwinConfig:
-    """Configuration for EMWIN module.
-
-    This configuration is loaded from environment variables with the EMWIN_ prefix.
-    Environment variables are case-insensitive and whitespace is automatically stripped.
-
-    Attributes:
-        email: Email address for EMWIN logon (required).
-
-    Environment Variables:
-        EMWIN_EMAIL: Email address for authentication
-
-    """
-
-    email: str = field(default="")
-
-    def __post_init__(self) -> None:
-        """Validate configuration after initialization."""
-        if self.email:
-            validated_email = _validate_email(self.email, "email")
-            object.__setattr__(self, "email", validated_email)
-        else:
-            msg = "Email address must not be empty"
-            raise ConfigurationError(msg)
 
 
 @dataclass(frozen=True)
