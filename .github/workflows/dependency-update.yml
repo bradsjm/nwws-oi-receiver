@@ -51,13 +51,12 @@ jobs:
             - name: Run tests with updated dependencies
               if: steps.update.outputs.dependencies-updated == 'true'
               run: |
-                  uv sync --dev
+                  uv sync --dev --group test
                   uv run pytest
 
             - name: Run type checking
               if: steps.update.outputs.dependencies-updated == 'true'
               run: |
-                  uv add --dev basedpyright
                   uv run basedpyright src/nwws_receiver
 
             - name: Run linting
