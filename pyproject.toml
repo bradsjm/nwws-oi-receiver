@@ -27,9 +27,6 @@ classifiers = [
 "Repository" = "https://github.com/bradsjm/nwws-oi-receiver.git"
 "Bug Tracker" = "https://github.com/bradsjm/nwws-oi-receiver/issues"
 
-[project.optional-dependencies]
-dev = ["ruff>=0.11.12"]
-
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
@@ -88,9 +85,9 @@ max-line-length = 120
 [dependency-groups]
 dev = [
     "bandit[toml]>=1.7.10",
-    "basedpyright>=1.29.2",
+    "basedpyright",
     "build>=1.2.2.post1",
-    "ruff>=0.11.13",
+    "ruff",
     "safety>=3.2.11",
     "setuptools>=80.9.0",
     "wheel>=0.45.1",

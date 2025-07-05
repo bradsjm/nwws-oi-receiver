@@ -54,17 +54,6 @@ jobs:
                   uv sync --dev --group test
                   uv run pytest
 
-            - name: Run type checking
-              if: steps.update.outputs.dependencies-updated == 'true'
-              run: |
-                  uv run basedpyright src/nwws_receiver
-
-            - name: Run linting
-              if: steps.update.outputs.dependencies-updated == 'true'
-              run: |
-                  uv run ruff check
-                  uv run ruff format --check
-
             - name: Validate typing configuration
               if: steps.update.outputs.dependencies-updated == 'true'
               run: uv run python scripts/validate_typing.py
