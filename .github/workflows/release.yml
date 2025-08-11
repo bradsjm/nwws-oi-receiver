@@ -168,7 +168,7 @@ jobs:
               uses: astral-sh/setup-uv@v6
 
             - name: Download artifacts
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@v5
               with:
                   name: release-dist
                   path: dist/
@@ -200,7 +200,7 @@ jobs:
             url: https://pypi.org/p/nwws-oi-receiver
         steps:
             - name: Download release artifacts
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@v5
               with:
                   name: release-dist
                   path: dist/
@@ -222,7 +222,7 @@ jobs:
                   fetch-depth: 0
 
             - name: Download release artifacts
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@v5
               with:
                   name: release-dist
                   path: dist/
