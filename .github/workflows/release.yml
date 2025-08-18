@@ -29,7 +29,7 @@ jobs:
             is-prerelease: ${{ steps.check-prerelease.outputs.is-prerelease }}
         steps:
             - name: Checkout code
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
 
             - name: Get version from tag or input
               id: get-version
@@ -78,7 +78,7 @@ jobs:
             sdist-name: ${{ steps.build.outputs.sdist-name }}
         steps:
             - name: Checkout code
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
 
             - name: Set up Python
               uses: actions/setup-python@v5
@@ -157,7 +157,7 @@ jobs:
         needs: build-release
         steps:
             - name: Checkout code
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
 
             - name: Set up Python
               uses: actions/setup-python@v5
@@ -217,7 +217,7 @@ jobs:
         needs: [validate-tag, build-release, publish-pypi]
         steps:
             - name: Checkout code
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
               with:
                   fetch-depth: 0
 
